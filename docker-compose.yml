@@ -1,4 +1,4 @@
-
+version: '3.8'
 
 services:
   postgres:
@@ -14,13 +14,18 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   mlflow:
-    image: ghcr.io/mlflow/mlflow:v2.7.1
+    build:
+      context: .
+      dockerfile: Dockerfile.mlflow
     container_name: f1_mlflow
     ports:
       - "5001:5000"
     environment:
       - MLFLOW_BACKEND_STORE_URI=postgresql://user:password@postgres:5432/f1_data
       - MLFLOW_ARTIFACT_ROOT=/mlflow/artifacts
+    volumes:
+      # NEW: Save model files to your local folder "mlflow_artifacts"
+      - ./mlflow_artifacts:/mlflow/artifacts
     depends_on:
       - postgres
     command: mlflow server --backend-store-uri postgresql://user:password@postgres:5432/f1_data --host 0.0.0.0 --port 5000
@@ -34,6 +39,20 @@ services:
       - ./notebooks:/home/jovyan/work
     environment:
       - JUPYTER_TOKEN=f1racing
+    depends_on:
+      - postgres
+      - mlflow
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.app
+    container_name: f1_dashboard
+    ports:
+      - "8501:8501"
+    volumes:
+      # NEW: Edit app.py on your Mac and see changes instantly!
+      - ./app.py:/app/app.py
     depends_on:
       - postgres
       - mlflow

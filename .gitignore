@@ -1,4 +1,17 @@
-postgres_data/
-.ipynb_checkpoints/
-__pycache__/
+# Mac System Files
 .DS_Store
+
+# Python Cache
+__pycache__/
+*.pyc
+
+# Virtual Environments (if you have them)
+venv/
+.env
+
+# Docker / Project Data (VERY IMPORTANT)
+postgres_data/
+mlflow_artifacts/
+
+# Jupyter Notebook Checkpoints
+.ipynb_checkpoints/
