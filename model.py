@@ -6,6 +6,10 @@ from sklearn.linear_model import LinearRegression
 import matplotlib.pyplot as plt
 import pickle
 import os
+from logger import setup_logger
+
+# Create logger instance
+logger = setup_logger("f1_model")
 
 # ==============================================================================
 # TRACK CHARACTERISTICS DATABASE
@@ -621,6 +625,9 @@ class F1LapTimePredictor:
             df['WarmUpProgress'] = (df['TyreLife'] / df['Compound_warm_up_laps']).clip(upper=1.0)
         
         print(f"   ✓ Engineered {len(df.columns)} total features")
+        logger.info(f"Feature engineering complete: {len(df.columns)} total features created from {len(df)} laps")
+        print(f"   ✓ Engineered {len(df.columns)} total features")
+        return df
         return df
     
     def prepare_data(self, df, target_col='LapTimeSeconds', drop_cols=None):
@@ -641,6 +648,7 @@ class F1LapTimePredictor:
             dropped_rows = original_len - len(df)
             if dropped_rows > 0:
                 print(f"   ⚠️ Dropped {dropped_rows} rows with invalid {target_col}")
+                logger.warning(f"Dropped {dropped_rows} rows with invalid {target_col} values")
         
         # ==================================================================
         # ONLY ENCODE TEAM
@@ -722,6 +730,7 @@ class F1LapTimePredictor:
     
     def train(self, X_train, y_train, X_val, y_val):
         """Train XGBoost model"""
+        logger.info(f"Training started with {X_train.shape[0]:,} samples and {X_train.shape[1]} features")
         print(f"🎯 Training XGBoost on {X_train.shape[0]:,} samples...")
         
         self.model = xgb.XGBRegressor(
@@ -750,6 +759,8 @@ class F1LapTimePredictor:
         
         print(f"   ✓ Train MAE: {train_mae:.4f}")
         print(f"   ✓ Val MAE:   {val_mae:.4f}")
+        logger.info(f"Training complete - Train MAE: {train_mae:.4f}, Val MAE: {val_mae:.4f}")
+
         
         return self.model
     

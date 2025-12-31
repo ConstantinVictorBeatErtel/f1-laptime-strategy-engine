@@ -5,6 +5,10 @@ import numpy as np
 import plotly.graph_objects as go
 from model import F1LapTimePredictor
 import os
+from logger import setup_logger
+
+# Create logger
+logger = setup_logger("f1_predictions")
 
 # --- PAGE CONFIG ---
 st.set_page_config(page_title="F1 Strategy Brain", page_icon="🏎️", layout="wide")
@@ -159,7 +163,8 @@ def main():
             X_input, _ = predictor.prepare_data(d_df)
             X_aligned = predictor.align_features(X_input) # Ensure columns match training
             pred_ratios = predictor.model.predict(X_aligned)
-            
+            logger.info(f"Race pace prediction for {selected_driver} at {gp}: {len(pred_ratios)} laps predicted")
+
             # Convert Ratio -> Seconds
             d_df['PredictedTime'] = np.nan
             # Map back using index to handle dropped rows
@@ -343,6 +348,8 @@ def main():
                     
                     # ML predicts base ratios
                     base_preds = predictor.model.predict(X_sim_aligned)
+                    logger.info(f"Strategy simulation for {selected_driver}: Pit lap {pit_lap}, {current_compound}->{target_compound}, predicted avg: {base_preds.mean():.3f}")
+
                     
                     # --- PHYSICS ADJUSTMENT (THE FIX) ---
                     # Calculate explicit tire degradation penalty for each lap
