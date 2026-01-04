@@ -382,7 +382,7 @@ class F1LapTimePredictor:
             self.driver_baselines = clean_laps.groupby('Driver')['LapTimeSeconds'].quantile(0.05).to_dict()
             print(f"   ✓ Calculated baselines for {len(self.driver_baselines)} drivers")
         else:
-            print("   ⚠️ Could not calculate driver baselines")
+            print("Could not calculate driver baselines")
     
     def engineer_features(self, df):
         """
@@ -422,7 +422,7 @@ class F1LapTimePredictor:
             
             missing_tracks = df[df['Track_avg_speed_kmh'].isna()]['EventName'].unique()
             if len(missing_tracks) > 0:
-                print(f"   ⚠️ Missing track data for: {missing_tracks}")
+                print(f"Missing track data for: {missing_tracks}")
                 for col in df.columns:
                     if col.startswith('Track_'):
                         df[col].fillna(df[col].median(), inplace=True)
@@ -490,7 +490,7 @@ class F1LapTimePredictor:
         # ======================================================================
         # 7. FIX 2: ADVANCED TIRE DEGRADATION FEATURES
         # ======================================================================
-        print("   🔧 Engineering degradation interaction features...")
+        print("Engineering degradation interaction features...")
         
         # Grip remaining (already calculated dynamically)
         df['GripRemaining'] = df['CurrentTireGrip']
@@ -514,7 +514,7 @@ class F1LapTimePredictor:
         # ======================================================================
         # 8. FIX 3: COMPREHENSIVE TRACK-TIRE-FUEL INTERACTIONS
         # ======================================================================
-        print("   🔧 Engineering physics interaction features...")
+        print("Engineering physics interaction features...")
         
         # TIRE-TRACK INTERACTIONS
         # How well does the tire match the track surface?
@@ -629,9 +629,9 @@ class F1LapTimePredictor:
             # Warm-up progress (0 to 1)
             df['WarmUpProgress'] = (df['TyreLife'] / df['Compound_warm_up_laps']).clip(upper=1.0)
         
-        print(f"   ✓ Engineered {len(df.columns)} total features")
+        print(f"Engineered {len(df.columns)} total features")
         logger.info(f"Feature engineering complete: {len(df.columns)} total features created from {len(df)} laps")
-        print(f"   ✓ Engineered {len(df.columns)} total features")
+        print(f"Engineered {len(df.columns)} total features")
         return df
         return df
     
@@ -652,7 +652,7 @@ class F1LapTimePredictor:
             
             dropped_rows = original_len - len(df)
             if dropped_rows > 0:
-                print(f"   ⚠️ Dropped {dropped_rows} rows with invalid {target_col}")
+                print(f"Dropped {dropped_rows} rows with invalid {target_col}")
                 logger.warning(f"Dropped {dropped_rows} rows with invalid {target_col} values")
         
         # ==================================================================
@@ -706,12 +706,12 @@ class F1LapTimePredictor:
         # Drop non-numeric
         non_numeric = X.select_dtypes(include=['object', 'datetime']).columns
         if len(non_numeric) > 0:
-            print(f"   ⚠️ Dropping non-numeric columns: {non_numeric.tolist()}")
+            print(f"Dropping non-numeric columns: {non_numeric.tolist()}")
             X = X.drop(columns=non_numeric)
         
         # Fill NaN
         if X.isna().sum().sum() > 0:
-            print(f"   ⚠️ Filling {X.isna().sum().sum()} NaN values with 0")
+            print(f"Filling {X.isna().sum().sum()} NaN values with 0")
             X = X.fillna(0)
         
         print(f"   ✓ Feature matrix: {X.shape}")
@@ -743,7 +743,7 @@ class F1LapTimePredictor:
             train_df, val_df: Optional DataFrames with ReferenceTime for seconds conversion
         """
         logger.info(f"Training started with {X_train.shape[0]:,} samples and {X_train.shape[1]} features")
-        print(f"🎯 Training XGBoost on {X_train.shape[0]:,} samples...")
+        print(f"Training XGBoost on {X_train.shape[0]:,} samples...")
 
         with mlflow.start_run(run_name="XGBoost_Strategy_Train"):
             # Hyperparameters
@@ -811,12 +811,12 @@ class F1LapTimePredictor:
                 mlflow.log_metric("train_rmse_seconds", train_rmse_sec)
                 mlflow.log_metric("val_rmse_seconds", val_rmse_sec)
 
-                print(f"   ✓ Train MAE: {train_mae:.4f} ratio ({train_mae_sec:.3f}s)")
-                print(f"   ✓ Val MAE:   {val_mae:.4f} ratio ({val_mae_sec:.3f}s)")
+                print(f"Train MAE: {train_mae:.4f} ratio ({train_mae_sec:.3f}s)")
+                print(f"Val MAE:   {val_mae:.4f} ratio ({val_mae_sec:.3f}s)")
                 logger.info(f"Training complete - Val MAE: {val_mae:.4f} ratio ({val_mae_sec:.3f}s)")
             else:
-                print(f"   ✓ Train MAE: {train_mae:.4f}, RMSE: {train_rmse:.4f}")
-                print(f"   ✓ Val MAE:   {val_mae:.4f}, RMSE: {val_rmse:.4f}")
+                print(f"Train MAE: {train_mae:.4f}, RMSE: {train_rmse:.4f}")
+                print(f"Val MAE:   {val_mae:.4f}, RMSE: {val_rmse:.4f}")
                 logger.info(f"Training complete - Train MAE: {train_mae:.4f}, Val MAE: {val_mae:.4f}")
 
             # Log model as pickle artifact (compatible with all MLflow versions)
@@ -830,7 +830,7 @@ class F1LapTimePredictor:
     
     def temporal_train_test_split(self, df, test_size=0.2):
         """Split data temporally by race"""
-        print(f"⏰ Temporal split: {int((1-test_size)*100)}% train / {int(test_size*100)}% test")
+        print(f"Temporal split: {int((1-test_size)*100)}% train / {int(test_size*100)}% test")
         
         df_temp = df.copy()
         df_temp['RaceID'] = df_temp['Year'].astype(str) + "_" + df_temp['EventName']
@@ -850,8 +850,8 @@ class F1LapTimePredictor:
         train_df = df_temp[df_temp['RaceID'].isin(train_ids)].drop(columns=['RaceID'])
         test_df = df_temp[df_temp['RaceID'].isin(test_ids)].drop(columns=['RaceID'])
         
-        print(f"   ✓ Train: {len(train_ids)} races ({len(train_df):,} laps)")
-        print(f"   ✓ Test:  {len(test_ids)} races ({len(test_df):,} laps)")
+        print(f"Train: {len(train_ids)} races ({len(train_df):,} laps)")
+        print(f"Test:  {len(test_ids)} races ({len(test_df):,} laps)")
         
         return train_df, test_df
     
@@ -861,7 +861,7 @@ class F1LapTimePredictor:
         val_size_adjusted = val_size / (1 - test_size)
         train_df, val_df = self.temporal_train_test_split(temp_df, test_size=val_size_adjusted)
         
-        print(f"\n📈 Final split:")
+        print(f"\n Final split:")
         print(f"   Train: {len(train_df):,} laps")
         print(f"   Val:   {len(val_df):,} laps")
         print(f"   Test:  {len(test_df):,} laps")
@@ -902,9 +902,9 @@ class F1LapTimePredictor:
         # Log the same metadata to MLflow
         if mlflow.active_run():
             self.log_metadata()
-            print(f"✅ Model saved to {filepath} and logged to MLflow")
+            print(f"Model saved to {filepath} and logged to MLflow")
         else:
-            print(f"✅ Model saved to {filepath} (No active MLflow run to log metadata)")
+            print(f"Model saved to {filepath} (No active MLflow run to log metadata)")
     
     def load_model(self, filepath):
         """Load model and metadata"""
@@ -914,4 +914,4 @@ class F1LapTimePredictor:
             self.feature_names = data['feature_names']
             self.deg_rates = data.get('deg_rates', self.deg_rates)
             self.driver_baselines = data.get('driver_baselines', {})
-        print(f"✅ Model loaded from {filepath}")
+        print(f"Model loaded from {filepath}")
