@@ -89,5 +89,5 @@ The XGBoost model uses physics-based feature engineering:
 * **Plotly** (Advanced visualizations)
 * **Pandas / NumPy** (Data processing)
 
-## 📝 License
+## License
 This project is for educational purposes using open data from the FastF1 library.
