@@ -1,4 +1,4 @@
-# F1 Strategy Command Center
+# F1 Box Command Center
 
 An advanced Machine Learning project that predicts Formula 1 race pace and optimizes pit stop strategy using physics-informed AI.
 
