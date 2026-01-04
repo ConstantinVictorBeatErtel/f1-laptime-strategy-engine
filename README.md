@@ -32,12 +32,12 @@ Once the containers are running, you can access them in your browser:
 * **Jupyter Lab:** http://localhost:8888 (Password: `f1racing`)
 * **MLflow UI:** http://localhost:5001
 
-## 📊 Workflow
+## Workflow
 1. **Ingestion:** Data is fetched from the FastF1 API and stored in Postgres (`01_data_ingestion.ipynb`).
 2. **Training:** An XGBoost model is trained on `TyreLife`, `LapNumber` (Fuel effect), `Compound`, and `Team` (`02_model_training.ipynb`).
 3. **Deployment:** The best model is logged to MLflow and loaded dynamically by the Streamlit Dashboard.
 
-## 🛠️ Tech Stack
+## Tech Stack
 * **Python 3.9**
 * **Docker & Docker Compose**
 * **PostgreSQL**
