@@ -19,7 +19,7 @@ YEARS = [2023, 2024]
 SESSION = 'R'
 all_races_dfs = []
 
-print("🏁 Loading data...")
+print("Loading data...")
 for YEAR in YEARS:
     try:
         schedule = fastf1.get_event_schedule(YEAR)
@@ -49,18 +49,18 @@ for YEAR in YEARS:
                 df['Year'] = YEAR
                 
                 all_races_dfs.append(df)
-                print(f"   ✅ Loaded {race_name} {YEAR} (Round {round_number})")
+                print(f"Loaded {race_name} {YEAR} (Round {round_number})")
             except Exception as e:
-                print(f"   ⚠️ Skipped {race_name}: {e}")
+                print(f"Skipped {race_name}: {e}")
     except Exception as e:
         print(f"Failed to get schedule for {YEAR}: {e}")
 
 if not all_races_dfs:
-    print("❌ No data loaded. Exiting.")
+    print("No data loaded. Exiting.")
     exit(1)
 
 df_combined = pd.concat(all_races_dfs, ignore_index=True)
-print(f"\n📊 Loaded {len(df_combined):,} laps from {len(all_races_dfs)} races")
+print(f"\n Loaded {len(df_combined):,} laps from {len(all_races_dfs)} races")
 
 # Ensure LapTimeSeconds exists
 df_combined['LapTimeSeconds'] = df_combined['LapTime'].dt.total_seconds()
@@ -158,7 +158,7 @@ clean_mask = (
     (test_df_eval['IsOutLap'] == 0)
 )
 
-print(f"   📊 Evaluation Filter: Clean Laps only (TrackStatus=1, No In/Out/Pit)")
+print(f"Evaluation Filter: Clean Laps only (TrackStatus=1, No In/Out/Pit)")
 
 # Overall Test Metric
 if clean_mask.sum() > 0:
@@ -166,11 +166,11 @@ if clean_mask.sum() > 0:
         test_df_eval.loc[clean_mask, 'ActualTime'], 
         test_df_eval.loc[clean_mask, 'PredictedTime']
     )
-    print(f"   🎯 GLOBAL TEST MAE: {mae:.3f}s (n={clean_mask.sum()} laps)")
+    print(f"GLOBAL TEST MAE: {mae:.3f}s (n={clean_mask.sum()} laps)")
 else:
-    print("   ⚠️ No clean laps found in test set?")
+    print("No clean laps found in test set?")
 
-print("\n   🏁 PER-RACE BREAKDOWN:")
+print("\n PER-RACE BREAKDOWN:")
 # Breakdown by Race
 test_races = test_df_eval['EventName'].unique()
 for race in test_races:
@@ -202,5 +202,5 @@ predictor.train(X_all, y_all, X_all, y_all, train_df=all_df, val_df=all_df)
 
 # Save
 predictor.save_model('models/f1_model_ratio.pkl')
-print("✅ Model Saved to models/f1_model_ratio.pkl")
-print("\n🏎️ Run `streamlit run app.py` to test!")
+print("Model Saved to models/f1_model_ratio.pkl")
+print("\n Run `streamlit run app.py` to test!")
