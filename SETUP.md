@@ -298,18 +298,18 @@ Edit `model.py` in `COMPOUND_PHYSICS` dictionary:
 
 From the GitHub repository alone, someone can:
 
-✅ **Clone the code** - All source files are included
-✅ **Install dependencies** - `requirements.txt` provided
-✅ **Train the model** - `train_model.py` handles everything
-✅ **Run the dashboard** - `app.py` ready to go
-✅ **Use Docker** - Full Docker setup included
+**Clone the code** - All source files are included
+**Install dependencies** - `requirements.txt` provided
+**Train the model** - `train_model.py` handles everything
+**Run the dashboard** - `app.py` ready to go
+**Use Docker** - Full Docker setup included
 
-⚠️ **They will need to:**
+**They will need to:**
 - Download F1 data via FastF1 (automatic, but requires internet)
 - Train the model (automatic via `train_model.py`)
 - Have sufficient RAM for training
 
-❌ **Not included in repo:**
+**Not included in repo:**
 - Pre-trained models (too large for git)
 - Historical data CSVs (generated from FastF1)
 - MLflow artifacts (generated during training)
@@ -330,16 +330,6 @@ From the GitHub repository alone, someone can:
 
 ---
 
-## Contributing
-
-Found a bug or have an improvement?
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
-
----
-
 ## License
 
 This project is for educational purposes using open data from the FastF1 library.
@@ -351,7 +341,3 @@ This project is for educational purposes using open data from the FastF1 library
 - **GitHub Issues:** https://github.com/ConstantinVictorBeatErtel/f1-strategy-engine/issues
 - **FastF1 Docs:** https://docs.fastf1.dev/
 - **Streamlit Docs:** https://docs.streamlit.io/
-
----
-
-**🏎️ Ready to race!**
