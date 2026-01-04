@@ -1,8 +1,8 @@
-# 🏎️ F1 Strategy Command Center
+# F1 Strategy Command Center
 
 An advanced Machine Learning project that predicts Formula 1 race pace and optimizes pit stop strategy using physics-informed AI.
 
-## ✨ Key Features
+## Key Features
 
 - **Dynamic Tire Physics:** Real-time grip degradation based on compound, temperature, and track abrasiveness
 - **Strategy Optimization:** AI-powered pit stop timing with lap-by-lap simulation
@@ -10,7 +10,7 @@ An advanced Machine Learning project that predicts Formula 1 race pace and optim
 - **Interactive Dashboard:** Beautiful Formula One-themed Streamlit interface
 - **MLflow Integration:** Complete experiment tracking and model versioning
 
-## 🏗️ Architecture
+## Architecture
 This project runs as a microservices architecture using Docker containers:
 * **Database:** PostgreSQL (Stores lap time data)
 * **Model:** XGBoost Regressor with Physics-Based Features
@@ -40,7 +40,7 @@ Once the containers are running, you can access them in your browser:
 * **Jupyter Lab:** http://localhost:8888 (Password: `f1racing`)
 * **MLflow UI:** http://localhost:5001
 
-## 📊 Model Features
+## Model Features
 
 The XGBoost model uses physics-based feature engineering:
 
@@ -58,7 +58,7 @@ The XGBoost model uses physics-based feature engineering:
 - Weather conditions (temperature, rainfall)
 - Race context (lap number, stint progress, track evolution)
 
-## 🎨 Dashboard Features
+## Dashboard Features
 
 ### Tab 1: Race Pace Analysis
 - Real-time lap time predictions vs actual
@@ -78,7 +78,7 @@ The XGBoost model uses physics-based feature engineering:
 - Real race tire performance tracking
 - Compound comparison tables
 
-## 🛠️ Tech Stack
+## Tech Stack
 * **Python 3.9+**
 * **Docker & Docker Compose**
 * **PostgreSQL** (Data storage)
