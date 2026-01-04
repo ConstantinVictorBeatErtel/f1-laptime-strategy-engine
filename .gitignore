@@ -12,6 +12,33 @@ venv/
 # Docker / Project Data (VERY IMPORTANT)
 postgres_data/
 mlflow_artifacts/
+mlruns/
 
 # Jupyter Notebook Checkpoints
 .ipynb_checkpoints/
+
+# Data Files (large CSV and binary files)
+*.csv
+*.tar.gz
+*.db
+
+# Model Files (too large for git)
+models/
+temp_model/
+
+# Cache Directories
+cache/
+f1_cache/
+
+# Log Files
+logs/
+*.log
+
+# Diagnostic and temporary files
+diagnostics/
+check_mlflow.py
+diagnose_features.py
+diagnose_features_visual.py
+evaluate_race.py
+visualize_prediction.py
+export_f1.py

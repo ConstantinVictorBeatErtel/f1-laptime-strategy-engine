@@ -1,13 +1,21 @@
-#  F1 Race Strategy Predictor
+# 🏎️ F1 Strategy Command Center
 
-An End-to-End Machine Learning project that predicts Formula 1 race pace based on tire degradation and fuel burn.
+An advanced Machine Learning project that predicts Formula 1 race pace and optimizes pit stop strategy using physics-informed AI.
 
-##  Architecture
+## ✨ Key Features
+
+- **Dynamic Tire Physics:** Real-time grip degradation based on compound, temperature, and track abrasiveness
+- **Strategy Optimization:** AI-powered pit stop timing with lap-by-lap simulation
+- **Race Pace Prediction:** XGBoost model with 50+ engineered features
+- **Interactive Dashboard:** Beautiful Formula One-themed Streamlit interface
+- **MLflow Integration:** Complete experiment tracking and model versioning
+
+## 🏗️ Architecture
 This project runs as a microservices architecture using Docker containers:
 * **Database:** PostgreSQL (Stores lap time data)
-* **Model:** XGBoost (Regression model trained on Bahrain 2024 data)
+* **Model:** XGBoost Regressor with Physics-Based Features
 * **Tracking:** MLflow (Experiment tracking and model registry)
-* **Frontend:** Streamlit (Interactive Strategy Dashboard)
+* **Frontend:** Streamlit (Premium F1-Styled Dashboard)
 * **Infrastructure:** Docker Compose (Orchestration)
 
 ##  How to Run
@@ -32,19 +40,54 @@ Once the containers are running, you can access them in your browser:
 * **Jupyter Lab:** http://localhost:8888 (Password: `f1racing`)
 * **MLflow UI:** http://localhost:5001
 
-## Workflow
-1. **Ingestion:** Data is fetched from the FastF1 API and stored in Postgres (`01_data_ingestion.ipynb`).
-2. **Training:** An XGBoost model is trained on `TyreLife`, `LapNumber` (Fuel effect), `Compound`, and `Team` (`02_model_training.ipynb`).
-3. **Deployment:** The best model is logged to MLflow and loaded dynamically by the Streamlit Dashboard.
+## 📊 Model Features
 
-## Tech Stack
-* **Python 3.9**
+The XGBoost model uses physics-based feature engineering:
+
+### Physics Features
+- **Dynamic Tire Performance:** Temperature-adjusted grip coefficients
+- **Degradation Modeling:** Quadratic wear with track abrasiveness
+- **Fuel Effects:** Non-linear fuel load impact on lap times
+- **Track Characteristics:** 24 circuits with detailed profiles
+- **Temperature Sensitivity:** Compound-specific optimal temperatures
+
+### Feature Categories (50+ total)
+- Tire dynamics (grip, degradation, compound properties)
+- Fuel load modeling (mass, cornering penalty, straight-line penalty)
+- Track characteristics (speed, corners, downforce, surface)
+- Weather conditions (temperature, rainfall)
+- Race context (lap number, stint progress, track evolution)
+
+## 🎨 Dashboard Features
+
+### Tab 1: Race Pace Analysis
+- Real-time lap time predictions vs actual
+- Multi-panel visualization (lap times + tire age)
+- Error distribution analysis
+- 4-metric performance dashboard
+
+### Tab 2: Strategy Simulator
+- Interactive pit stop optimization
+- Safety car scenario modeling
+- Temperature-adjusted predictions
+- Visual pit window recommendations
+
+### Tab 3: Tire Physics
+- Theoretical degradation curves
+- Temperature sensitivity analysis
+- Real race tire performance tracking
+- Compound comparison tables
+
+## 🛠️ Tech Stack
+* **Python 3.9+**
 * **Docker & Docker Compose**
-* **PostgreSQL**
-* **MLflow**
-* **Streamlit**
-* **XGBoost**
-* **Pandas / SQLAlchemy**
+* **PostgreSQL** (Data storage)
+* **MLflow** (Experiment tracking)
+* **Streamlit** (Interactive dashboard)
+* **XGBoost** (ML model)
+* **FastF1** (F1 data API)
+* **Plotly** (Advanced visualizations)
+* **Pandas / NumPy** (Data processing)
 
 ## 📝 License
 This project is for educational purposes using open data from the FastF1 library.

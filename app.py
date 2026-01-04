@@ -3,7 +3,8 @@ import fastf1
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
-from model import F1LapTimePredictor
+from plotly.subplots import make_subplots
+from model import F1LapTimePredictor, TRACK_CHARACTERISTICS, COMPOUND_PHYSICS
 import os
 from logger import setup_logger
 
@@ -11,18 +12,170 @@ from logger import setup_logger
 logger = setup_logger("f1_predictions")
 
 # --- PAGE CONFIG ---
-st.set_page_config(page_title="F1 Strategy Brain", page_icon="🏎️", layout="wide")
+st.set_page_config(
+    page_title="F1 Strategy Command Center",
+    page_icon="🏎️",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-# --- CUSTOM CSS (F1 THEME) ---
+# --- ENHANCED CUSTOM CSS (PREMIUM F1 THEME) ---
 st.markdown("""
 <style>
-    .stApp { background-color: #101015; color: #FFFFFF; }
-    h1, h2, h3 { color: #FFFFFF; font-family: 'Arial', sans-serif; font-weight: 700; }
-    .stButton>button { background-color: #E10600; color: white; border-radius: 4px; border: none; font-weight: bold; }
-    .stButton>button:hover { background-color: #ff3333; }
-    div[data-testid="stMetricValue"] { color: #E10600; font-size: 28px; }
-    div[data-testid="stMetricLabel"] { color: #aaaaaa; }
-    .css-1d391kg { background-color: #1b1b22; } /* Sidebar */
+    /* Main Theme */
+    .stApp {
+        background: linear-gradient(135deg, #0a0a0f 0%, #15151d 100%);
+        color: #FFFFFF;
+    }
+
+    /* Headers with Racing Font Style */
+    h1 {
+        color: #E10600;
+        font-family: 'Helvetica Neue', 'Arial', sans-serif;
+        font-weight: 900;
+        font-size: 3.5rem !important;
+        letter-spacing: -2px;
+        text-transform: uppercase;
+        background: linear-gradient(90deg, #E10600 0%, #ff4444 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 0.5rem;
+    }
+
+    h2 {
+        color: #FFFFFF;
+        font-family: 'Helvetica Neue', sans-serif;
+        font-weight: 700;
+        font-size: 2rem !important;
+        border-left: 5px solid #E10600;
+        padding-left: 15px;
+        margin-top: 2rem;
+    }
+
+    h3 {
+        color: #cccccc;
+        font-family: 'Arial', sans-serif;
+        font-weight: 600;
+        font-size: 1.3rem !important;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    /* Buttons */
+    .stButton>button {
+        background: linear-gradient(135deg, #E10600 0%, #c00500 100%);
+        color: white;
+        border-radius: 8px;
+        border: 2px solid #ff3333;
+        font-weight: 900;
+        font-size: 1.1rem;
+        padding: 0.75rem 2rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        box-shadow: 0 4px 15px rgba(225, 6, 0, 0.4);
+        transition: all 0.3s ease;
+    }
+
+    .stButton>button:hover {
+        background: linear-gradient(135deg, #ff3333 0%, #E10600 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(225, 6, 0, 0.6);
+    }
+
+    /* Metrics */
+    div[data-testid="stMetricValue"] {
+        color: #E10600;
+        font-size: 2.5rem !important;
+        font-weight: 900;
+        text-shadow: 0 0 20px rgba(225, 6, 0, 0.5);
+    }
+
+    div[data-testid="stMetricLabel"] {
+        color: #999999;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-weight: 600;
+    }
+
+    /* Sidebar */
+    section[data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #1b1b22 0%, #0f0f14 100%);
+        border-right: 2px solid #E10600;
+    }
+
+    section[data-testid="stSidebar"] h2 {
+        border-left: none;
+        padding-left: 0;
+        color: #E10600;
+    }
+
+    /* Tabs */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+        background-color: rgba(27, 27, 34, 0.5);
+        padding: 0.5rem;
+        border-radius: 8px;
+    }
+
+    .stTabs [data-baseweb="tab"] {
+        background-color: transparent;
+        border-radius: 6px;
+        color: #999999;
+        font-weight: 700;
+        padding: 0.75rem 1.5rem;
+        font-size: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(135deg, #E10600 0%, #c00500 100%);
+        color: white;
+        box-shadow: 0 4px 12px rgba(225, 6, 0, 0.4);
+    }
+
+    /* Info boxes */
+    .stAlert {
+        background-color: rgba(27, 27, 34, 0.8);
+        border: 1px solid #333;
+        border-left: 4px solid #E10600;
+        border-radius: 6px;
+        padding: 1rem;
+    }
+
+    /* Progress bar */
+    .stProgress > div > div > div > div {
+        background: linear-gradient(90deg, #E10600 0%, #ff4444 100%);
+    }
+
+    /* Select boxes */
+    .stSelectbox > div > div {
+        background-color: rgba(27, 27, 34, 0.8);
+        border: 1px solid #333;
+        border-radius: 6px;
+    }
+
+    /* Racing stripe decoration */
+    .race-stripe {
+        height: 4px;
+        background: linear-gradient(90deg,
+            transparent 0%,
+            #E10600 10%,
+            #E10600 90%,
+            transparent 100%);
+        margin: 2rem 0;
+        box-shadow: 0 0 10px rgba(225, 6, 0, 0.5);
+    }
+
+    /* Card styling */
+    .card {
+        background: rgba(27, 27, 34, 0.6);
+        border: 1px solid #333;
+        border-radius: 10px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -51,14 +204,19 @@ def load_race_data(year, gp, session_type='R'):
 
 # --- MAIN APP LOGIC ---
 def main():
-    st.title("🏎️ F1 AI Strategy Engine")
-    st.markdown("Physics-Informed Pace Prediction & Strategy Optimization")
+    # Header with racing stripe
+    st.title("🏎️ F1 Strategy Command Center")
+    st.markdown("### Physics-Informed AI for Race Strategy Optimization")
+    st.markdown('<div class="race-stripe"></div>', unsafe_allow_html=True)
 
     # Sidebar: Controls
     with st.sidebar:
-        st.header("Race Configuration")
-        # STRICTLY 2025 as requested
-        year = st.selectbox("Year", [2025], index=0)
+        st.image("https://www.formula1.com/content/dam/fom-website/2018-redesign-assets/F1%20logo%20red.png", width=200)
+        st.markdown("---")
+        st.header("🎛️ Race Configuration")
+
+        # Year selection
+        year = st.selectbox("🏁 Season", [2025, 2024, 2023], index=0)
         
         # Dynamic Schedule Loading
         try:
@@ -90,16 +248,34 @@ def main():
             st.error(f"Could not load schedule: {e}")
             gp = 'Bahrain Grand Prix' # Fallback
         
-        load_btn = st.button("Load Race Data")
-        
+        load_btn = st.button("🚀 Load Race Data")
+
+        st.markdown("---")
+
+        # Display track characteristics if GP selected
+        if 'gp' in locals() and gp in TRACK_CHARACTERISTICS:
+            with st.expander("📍 Track Info"):
+                track_info = TRACK_CHARACTERISTICS[gp]
+                st.metric("Track Length", f"{track_info['track_length_km']:.2f} km")
+                st.metric("Average Speed", f"{track_info['avg_speed_kmh']:.0f} km/h")
+                st.metric("Corners", track_info['corner_count'])
+                st.metric("Downforce Level", f"{track_info['downforce_level']}/5")
+
         st.markdown("---")
         st.info("""
         **🧠 Model Architecture:**
-        - **Type:** XGBoost Regressor (Physics-Informed)
-        - **Training:** Temporal Split (Past -> Future)
-        - **Features:** Tire Deg, Fuel, Track Temp, Rubbering
-        - **Metric:** MAE on Clean Laps
+        - **Type:** XGBoost Regressor
+        - **Physics:** Dynamic Tire Degradation
+        - **Features:** 50+ engineered variables
+        - **Training:** Temporal Split
+        - **Tracking:** MLflow Integration
         """)
+
+        with st.expander("🔧 Tire Compound Physics"):
+            st.markdown("**Degradation Rates (s/lap):**")
+            for compound, props in COMPOUND_PHYSICS.items():
+                st.text(f"{compound:12s}: {props['base_deg_rate']:.3f} | Optimal: {props['optimal_temp_C']}°C")
+
 
     # Load Model
     predictor = load_model()
@@ -148,108 +324,195 @@ def main():
         df_eng['ReferenceTime'] = ref_time
         
         # --- TABS ---
-        tab1, tab2 = st.tabs(["📊 Race Pace Analysis", "🧠 Strategy Simulator"])
+        tab1, tab2, tab3 = st.tabs(["📊 Race Pace Analysis", "🧠 Strategy Simulator", "🔬 Tire Physics"])
 
         # ==============================================================================
-        # TAB 1: RACE PACE VALIDATION (The "Clean Air" View)
+        # TAB 1: RACE PACE VALIDATION (Enhanced with multi-driver comparison)
         # ==============================================================================
         with tab1:
-            st.subheader(f"Race Pace Validation: {selected_driver}")
-            
+            st.markdown('<div class="race-stripe"></div>', unsafe_allow_html=True)
+            st.subheader(f"🎯 Race Pace Validation: {selected_driver}")
+
             # Filter for Driver
             d_df = df_eng[df_eng['Driver'] == selected_driver].copy()
-            
+
             # Predict
             X_input, _ = predictor.prepare_data(d_df)
-            X_aligned = predictor.align_features(X_input) # Ensure columns match training
+            X_aligned = predictor.align_features(X_input)
             pred_ratios = predictor.model.predict(X_aligned)
             logger.info(f"Race pace prediction for {selected_driver} at {gp}: {len(pred_ratios)} laps predicted")
 
             # Convert Ratio -> Seconds
             d_df['PredictedTime'] = np.nan
-            # Map back using index to handle dropped rows
             d_df.loc[X_input.index, 'PredictedTime'] = pred_ratios * d_df.loc[X_input.index, 'ReferenceTime']
-            
+
             # --- CLEAN PACE FILTER ---
-            # Remove Lap 1, Pit Laps, and Safety Car Laps for the metric/plot
             clean_mask = (
-                (d_df['LapNumber'] > 1) & 
-                (d_df['TrackStatus'] == '1') & 
-                (d_df['IsInLap'] == 0) & 
-                (d_df['IsOutLap'] == 0) & 
+                (d_df['LapNumber'] > 1) &
+                (d_df['TrackStatus'] == '1') &
+                (d_df['IsInLap'] == 0) &
+                (d_df['IsOutLap'] == 0) &
                 (d_df['PredictedTime'].notna())
             )
-            
+
             clean_df = d_df[clean_mask]
-            
-            # Metrics
+
+            # Enhanced Metrics Row
+            col1, col2, col3, col4 = st.columns(4)
             if not clean_df.empty:
                 mae = np.mean(np.abs(clean_df['LapTimeSeconds'] - clean_df['PredictedTime']))
-                st.markdown(f"**Clean Air MAE:** `{mae:.3f}s` (Excluding L1, Pits, SC)")
+                rmse = np.sqrt(np.mean((clean_df['LapTimeSeconds'] - clean_df['PredictedTime'])**2))
+                max_error = np.max(np.abs(clean_df['LapTimeSeconds'] - clean_df['PredictedTime']))
+
+                col1.metric("MAE (Clean Air)", f"{mae:.3f}s", help="Mean Absolute Error on clean laps")
+                col2.metric("RMSE", f"{rmse:.3f}s", help="Root Mean Squared Error")
+                col3.metric("Max Error", f"{max_error:.3f}s", help="Largest single lap prediction error")
+                col4.metric("Clean Laps", len(clean_df), help="Laps used for validation")
             else:
-                st.warning("Not enough clean laps to calculate MAE.")
+                st.warning("⚠️ Not enough clean laps to calculate metrics.")
 
-            # Plotting
-            fig = go.Figure()
+            # Enhanced Plotting with tire stint visualization
+            fig = make_subplots(
+                rows=2, cols=1,
+                row_heights=[0.7, 0.3],
+                subplot_titles=("Lap Time Prediction", "Tire Age & Compound"),
+                vertical_spacing=0.12
+            )
 
-            # Actual Laps (Grey Dots)
+            # Top plot: Lap times
             fig.add_trace(go.Scatter(
-                x=clean_df['LapNumber'], 
+                x=clean_df['LapNumber'],
                 y=clean_df['LapTimeSeconds'],
                 mode='markers',
                 name='Actual Time',
-                marker=dict(color='rgba(255, 255, 255, 0.5)', size=6)
-            ))
+                marker=dict(color='rgba(150, 150, 150, 0.6)', size=8, line=dict(width=1, color='white')),
+                hovertemplate='Lap %{x}<br>Actual: %{y:.3f}s<extra></extra>'
+            ), row=1, col=1)
 
-            # Predicted Laps (Red Line)
             fig.add_trace(go.Scatter(
-                x=clean_df['LapNumber'], 
+                x=clean_df['LapNumber'],
                 y=clean_df['PredictedTime'],
-                mode='lines',
+                mode='lines+markers',
                 name='AI Prediction',
-                line=dict(color='#E10600', width=3)
-            ))
+                line=dict(color='#E10600', width=3),
+                marker=dict(size=4, color='#E10600'),
+                hovertemplate='Lap %{x}<br>Predicted: %{y:.3f}s<extra></extra>'
+            ), row=1, col=1)
+
+            # Bottom plot: Tire compound visualization
+            compound_colors = {
+                'SOFT': '#FF0000',
+                'MEDIUM': '#FFFF00',
+                'HARD': '#FFFFFF',
+                'INTERMEDIATE': '#00FF00',
+                'WET': '#0000FF'
+            }
+
+            for compound in clean_df['Compound'].unique():
+                compound_laps = clean_df[clean_df['Compound'] == compound]
+                fig.add_trace(go.Scatter(
+                    x=compound_laps['LapNumber'],
+                    y=compound_laps['TyreLife'],
+                    mode='markers',
+                    name=compound,
+                    marker=dict(
+                        size=10,
+                        color=compound_colors.get(compound, '#888888'),
+                        symbol='square'
+                    ),
+                    hovertemplate=f'{compound}<br>Lap: %{{x}}<br>Tire Age: %{{y}} laps<extra></extra>',
+                    showlegend=True
+                ), row=2, col=1)
+
+            fig.update_xaxes(title_text="Lap Number", row=2, col=1)
+            fig.update_yaxes(title_text="Lap Time (s)", row=1, col=1)
+            fig.update_yaxes(title_text="Tire Age", row=2, col=1)
 
             fig.update_layout(
-                title=f"Actual vs Predicted Pace ({selected_driver})",
-                xaxis_title="Lap Number",
-                yaxis_title="Lap Time (s)",
                 template="plotly_dark",
-                height=500,
-                yaxis=dict(autorange="reversed") # In racing, lower is higher on graph usually, or just zoom
+                height=700,
+                showlegend=True,
+                hovermode='x unified',
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(20,20,30,0.5)'
             )
             st.plotly_chart(fig, use_container_width=True)
 
+            # Error distribution histogram
+            if not clean_df.empty:
+                st.markdown("### 📈 Prediction Error Distribution")
+                errors = clean_df['LapTimeSeconds'] - clean_df['PredictedTime']
+
+                fig_hist = go.Figure()
+                fig_hist.add_trace(go.Histogram(
+                    x=errors,
+                    nbinsx=30,
+                    marker=dict(
+                        color='#E10600',
+                        line=dict(color='white', width=1)
+                    ),
+                    hovertemplate='Error: %{x:.3f}s<br>Count: %{y}<extra></extra>'
+                ))
+
+                fig_hist.update_layout(
+                    title="Distribution of Prediction Errors",
+                    xaxis_title="Error (s) - Negative = Predicted Faster",
+                    yaxis_title="Frequency",
+                    template="plotly_dark",
+                    height=300,
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(20,20,30,0.5)'
+                )
+                st.plotly_chart(fig_hist, use_container_width=True)
+
         # ==============================================================================
-        # TAB 2: STRATEGY SIMULATOR (Fixed for Driver Specificity)
+        # TAB 2: STRATEGY SIMULATOR (Enhanced UI)
         # ==============================================================================
         with tab2:
-            st.subheader("Strategy Optimizer")
+            st.markdown('<div class="race-stripe"></div>', unsafe_allow_html=True)
+            st.subheader("⚡ Strategy Optimizer")
             
-            col1, col2 = st.columns(2)
+            # Enhanced input section with cards
+            st.markdown("### ⚙️ Simulation Parameters")
+
+            col1, col2, col3 = st.columns(3)
             with col1:
-                # Limit slider to actual race length
                 max_lap = int(df['LapNumber'].max() - 5)
-                current_lap = st.slider("Current Lap", min_value=5, max_value=max_lap, value=20)
+                current_lap = st.slider("📍 Current Lap", min_value=5, max_value=max_lap, value=20)
+                st.caption(f"Race length: {int(df['LapNumber'].max())} laps")
+
             with col2:
-                is_sc = st.toggle("Safety Car Deployed?", value=False)
+                is_sc = st.toggle("🚨 Safety Car Deployed?", value=False)
                 pit_loss = 11.0 if is_sc else 20.0
-                st.caption(f"Pit Loss Cost: **{pit_loss}s**")
-            
-            # --- COMPOUND SELECTION (FIX #1) ---
-            st.markdown("**Tire Strategy:**")
+                st.metric("Pit Stop Time Loss", f"{pit_loss}s", help="Time lost in pit lane")
+
+            with col3:
+                current_temp = df['TrackTemp'].iloc[-1] if 'TrackTemp' in df.columns else 35.0
+                future_temp = st.slider("🌡️ Track Temp Forecast (°C)", min_value=15, max_value=55, value=int(current_temp))
+                st.caption("Account for weather changes")
+
+            st.markdown("### 🏁 Tire Strategy")
             c1, c2, c3 = st.columns(3)
             with c1:
-                current_compound = st.selectbox("Current Tires", ['SOFT', 'MEDIUM', 'HARD'], index=1)
+                current_compound = st.selectbox("🔴 Current Compound", ['SOFT', 'MEDIUM', 'HARD'], index=1,
+                    help="Tire compound currently on the car")
             with c2:
-                target_compound = st.selectbox("Pit To", ['SOFT', 'MEDIUM', 'HARD'], index=2)
+                target_compound = st.selectbox("🎯 Target Compound", ['SOFT', 'MEDIUM', 'HARD'], index=2,
+                    help="Compound to switch to at pit stop")
             with c3:
-                # --- WEATHER FORECAST (FIX #3) ---
-                current_temp = df['TrackTemp'].iloc[-1] if 'TrackTemp' in df.columns else 35.0
-                future_temp = st.slider("Forecast Track Temp (°C)", min_value=15, max_value=55, value=int(current_temp))
-                st.caption("Adjust for expected temp change (sunset, clouds)")
-            
-            st.info(f"Simulating: {selected_driver} ({current_compound} → {target_compound}) | TrackTemp: {future_temp}°C")
+                # Show current tire age
+                if selected_driver in df_eng['Driver'].values:
+                    current_tire_age = df_eng.loc[
+                        (df_eng['Driver'] == selected_driver) &
+                        (df_eng['LapNumber'] == current_lap), 'TyreLife'
+                    ].values
+                    if len(current_tire_age) > 0:
+                        st.metric("Current Tire Age", f"{int(current_tire_age[0])} laps")
+                    else:
+                        st.metric("Current Tire Age", "Unknown")
+
+            # Strategy summary card
+            st.info(f"🎯 **Simulation:** {selected_driver} | {current_compound} → {target_compound} | Track Temp: {future_temp}°C | {'🚨 SC Active' if is_sc else '🟢 Green Flag'}")
 
             if st.button("🚀 Run Strategy Simulation"):
                 
@@ -380,45 +643,299 @@ def main():
                 
                 prog_bar.empty()
                 
-                # --- RESULTS VISUALIZATION ---
+                # --- ENHANCED RESULTS VISUALIZATION ---
                 res_df = pd.DataFrame(results)
-                
-                # Highlight: Calculate Delta to Best
+
+                # Calculate Delta to Best
                 res_df['Delta'] = res_df['TotalTime'] - res_df['TotalTime'].min()
                 best_strat = res_df.loc[res_df['TotalTime'].idxmin()]
-                
-                c1, c2 = st.columns(2)
-                with c1:
-                    st.metric("🏆 Optimal Box Lap", f"Lap {int(best_strat['PitLap'])}")
-                with c2:
-                    st.metric("Predicted Race Time", f"{best_strat['TotalTime']:.1f}s")
+                worst_strat = res_df.loc[res_df['TotalTime'].idxmax()]
 
+                st.markdown("---")
+                st.markdown("### 🏆 Optimal Strategy Results")
+
+                # Enhanced metrics
+                c1, c2, c3, c4 = st.columns(4)
+                with c1:
+                    st.metric("🏆 Optimal Pit Lap", f"Lap {int(best_strat['PitLap'])}")
+                with c2:
+                    st.metric("⏱️ Predicted Time", f"{best_strat['TotalTime']:.1f}s")
+                with c3:
+                    worst_delta = worst_strat['TotalTime'] - best_strat['TotalTime']
+                    st.metric("⚠️ Worst Case Delta", f"+{worst_delta:.1f}s",
+                        help="Time loss if pitting at worst lap")
+                with c4:
+                    # Calculate pit window (laps within 1s of optimal)
+                    pit_window = res_df[res_df['Delta'] <= 1.0]
+                    st.metric("✅ Pit Window", f"{len(pit_window)} laps",
+                        help="Laps within 1s of optimal strategy")
+
+                # Create enhanced visualization with annotations
                 fig_strat = go.Figure()
-                
-                # We plot DELTA instead of raw time to make the curve obvious
+
+                # Main strategy curve
                 fig_strat.add_trace(go.Scatter(
                     x=res_df['PitLap'],
                     y=res_df['Delta'],
                     mode='lines+markers',
                     name='Time Lost vs Optimal',
-                    line=dict(color='#00ff00' if is_sc else '#E10600', width=4),
-                    hovertemplate='Pit Lap: %{x}<br>Time Lost: +%{y:.2f}s'
+                    line=dict(
+                        color='#00ff00' if is_sc else '#E10600',
+                        width=4,
+                        shape='spline'
+                    ),
+                    marker=dict(size=6, symbol='circle'),
+                    fill='tozeroy',
+                    fillcolor='rgba(225, 6, 0, 0.1)' if not is_sc else 'rgba(0, 255, 0, 0.1)',
+                    hovertemplate='<b>Pit Lap %{x}</b><br>Time Lost: +%{y:.2f}s<extra></extra>'
                 ))
-                
+
+                # Highlight optimal pit lap
+                fig_strat.add_trace(go.Scatter(
+                    x=[best_strat['PitLap']],
+                    y=[0],
+                    mode='markers',
+                    name='Optimal Pit Window',
+                    marker=dict(
+                        size=20,
+                        color='gold',
+                        symbol='star',
+                        line=dict(color='white', width=2)
+                    ),
+                    hovertemplate='<b>OPTIMAL</b><br>Lap %{x}<extra></extra>'
+                ))
+
+                # Add pit window shading (within 1s of optimal)
+                if len(pit_window) > 0:
+                    fig_strat.add_vrect(
+                        x0=pit_window['PitLap'].min() - 0.5,
+                        x1=pit_window['PitLap'].max() + 0.5,
+                        fillcolor="rgba(0, 255, 0, 0.1)",
+                        layer="below",
+                        line_width=0,
+                        annotation_text="Safe Pit Window",
+                        annotation_position="top left"
+                    )
+
                 fig_strat.update_layout(
-                    title=f"Strategy Delta: {selected_driver} (Lower is Better)",
-                    xaxis_title="Lap You Choose To Pit",
-                    yaxis_title="Seconds Slower than Optimal",
+                    title=f"🎯 Pit Strategy Optimization: {selected_driver}",
+                    xaxis_title="Pit Stop Lap Number",
+                    yaxis_title="Time Lost vs Optimal Strategy (s)",
                     template="plotly_dark",
-                    height=500
+                    height=500,
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(20,20,30,0.5)',
+                    hovermode='x unified',
+                    annotations=[
+                        dict(
+                            x=best_strat['PitLap'],
+                            y=0,
+                            xref="x",
+                            yref="y",
+                            text=f"Optimal: Lap {int(best_strat['PitLap'])}",
+                            showarrow=True,
+                            arrowhead=2,
+                            arrowsize=1,
+                            arrowwidth=2,
+                            arrowcolor="gold",
+                            ax=0,
+                            ay=-40,
+                            font=dict(size=12, color="gold")
+                        )
+                    ]
                 )
-                
-                st.plotly_chart(fig_strat, use_container_width=True)    
+
+                st.plotly_chart(fig_strat, use_container_width=True)
+
+                # Strategy recommendations
+                st.markdown("### 💡 Strategy Recommendations")
+
+                col1, col2 = st.columns(2)
+
+                with col1:
+                    st.markdown("**✅ Optimal Strategy:**")
+                    st.success(f"""
+                    - Pit on **Lap {int(best_strat['PitLap'])}**
+                    - Switch to **{target_compound}** compound
+                    - Expected race time: **{best_strat['TotalTime']:.1f}s**
+                    - Pit window: **Lap {int(pit_window['PitLap'].min())} - {int(pit_window['PitLap'].max())}**
+                    """)
+
+                with col2:
+                    st.markdown("**⚠️ Avoid:**")
+                    # Find worst 3 pit laps
+                    worst_laps = res_df.nlargest(3, 'Delta')
+                    st.warning(f"""
+                    - Worst pit lap: **Lap {int(worst_strat['PitLap'])}** (+{worst_strat['Delta']:.1f}s)
+                    - Avoid pitting too early or too late
+                    - Stay within the safe pit window for flexibility
+                    """)
+
+                # Show top 5 strategies in a table
+                with st.expander("📊 View Top 10 Alternative Strategies"):
+                    top_strategies = res_df.nsmallest(10, 'TotalTime')[['PitLap', 'TotalTime', 'Delta']]
+                    top_strategies['PitLap'] = top_strategies['PitLap'].astype(int)
+                    top_strategies['TotalTime'] = top_strategies['TotalTime'].round(2)
+                    top_strategies['Delta'] = top_strategies['Delta'].apply(lambda x: f"+{x:.2f}s" if x > 0 else f"{x:.2f}s")
+                    top_strategies.columns = ['Pit Lap', 'Total Time (s)', 'Delta']
+                    st.dataframe(top_strategies, use_container_width=True, hide_index=True)
+
+        # ==============================================================================
+        # TAB 3: TIRE PHYSICS ANALYSIS
+        # ==============================================================================
+        with tab3:
+            st.markdown('<div class="race-stripe"></div>', unsafe_allow_html=True)
+            st.subheader("🔬 Tire Physics & Degradation Analysis")
+
+            # Tire compound comparison
+            st.markdown("### Compound Characteristics Comparison")
+
+            # Create comparison table
+            compound_data = []
+            for compound, props in COMPOUND_PHYSICS.items():
+                compound_data.append({
+                    'Compound': compound,
+                    'Grip Coefficient': props['grip_coefficient'],
+                    'Degradation Rate': f"{props['base_deg_rate']:.3f}",
+                    'Optimal Temp (°C)': props['optimal_temp_C'],
+                    'Temp Sensitivity': f"{props['temp_sensitivity']:.4f}",
+                    'Warm-up Laps': props['warm_up_laps'],
+                    'Peak Grip Lap': props['peak_grip_lap']
+                })
+
+            compound_df = pd.DataFrame(compound_data)
+            st.dataframe(compound_df, use_container_width=True, hide_index=True)
+
+            # Tire degradation curve visualization
+            st.markdown("### 📉 Theoretical Degradation Curves")
+
+            col1, col2 = st.columns(2)
+            with col1:
+                track_temp_sim = st.slider("Track Temperature (°C)", 15, 50, 30, key="tire_temp")
+            with col2:
+                track_abrasive = st.slider("Track Abrasiveness", 1, 5, 3, key="tire_abr")
+
+            # Simulate tire performance over stint
+            max_laps = 50
+            lap_range = np.arange(1, max_laps + 1)
+
+            fig_deg = go.Figure()
+
+            compound_colors = {
+                'SOFT': '#FF0000',
+                'MEDIUM': '#FFFF00',
+                'HARD': '#FFFFFF',
+                'INTERMEDIATE': '#00FF00',
+                'WET': '#0000FF'
+            }
+
+            from model import calculate_dynamic_tire_performance
+
+            for compound in ['SOFT', 'MEDIUM', 'HARD']:
+                grip_values = []
+                for lap in lap_range:
+                    grip, _ = calculate_dynamic_tire_performance(
+                        compound, track_temp_sim, track_abrasive, lap
+                    )
+                    grip_values.append(grip)
+
+                fig_deg.add_trace(go.Scatter(
+                    x=lap_range,
+                    y=grip_values,
+                    mode='lines',
+                    name=compound,
+                    line=dict(color=compound_colors[compound], width=3),
+                    hovertemplate=f'{compound}<br>Lap: %{{x}}<br>Grip: %{{y:.3f}}<extra></extra>'
+                ))
+
+            fig_deg.update_layout(
+                title=f"Tire Grip vs Age (Track: {track_temp_sim}°C, Abrasiveness: {track_abrasive}/5)",
+                xaxis_title="Tire Age (Laps)",
+                yaxis_title="Grip Coefficient",
+                template="plotly_dark",
+                height=500,
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(20,20,30,0.5)',
+                hovermode='x unified'
+            )
+            st.plotly_chart(fig_deg, use_container_width=True)
+
+            # Temperature sensitivity chart
+            st.markdown("### 🌡️ Temperature Sensitivity")
+
+            temp_range = np.arange(15, 51, 1)
+            fig_temp = go.Figure()
+
+            for compound in ['SOFT', 'MEDIUM', 'HARD']:
+                grip_at_temps = []
+                for temp in temp_range:
+                    grip, _ = calculate_dynamic_tire_performance(
+                        compound, temp, 3, 5  # Mid-stint on medium abrasive track
+                    )
+                    grip_at_temps.append(grip)
+
+                fig_temp.add_trace(go.Scatter(
+                    x=temp_range,
+                    y=grip_at_temps,
+                    mode='lines',
+                    name=compound,
+                    line=dict(color=compound_colors[compound], width=3),
+                    hovertemplate=f'{compound}<br>Temp: %{{x}}°C<br>Grip: %{{y:.3f}}<extra></extra>'
+                ))
+
+            fig_temp.update_layout(
+                title="Grip vs Track Temperature (5 lap old tires)",
+                xaxis_title="Track Temperature (°C)",
+                yaxis_title="Grip Coefficient",
+                template="plotly_dark",
+                height=400,
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(20,20,30,0.5)',
+                hovermode='x unified'
+            )
+            st.plotly_chart(fig_temp, use_container_width=True)
+
+            # Real race data tire analysis
+            if not d_df.empty:
+                st.markdown("### 🏁 Race Tire Performance")
+
+                # Calculate actual vs theoretical grip
+                tire_analysis = d_df[clean_mask].copy()
+
+                if not tire_analysis.empty and 'CurrentTireGrip' in tire_analysis.columns:
+                    fig_real_tire = go.Figure()
+
+                    for compound in tire_analysis['Compound'].unique():
+                        comp_data = tire_analysis[tire_analysis['Compound'] == compound]
+
+                        fig_real_tire.add_trace(go.Scatter(
+                            x=comp_data['TyreLife'],
+                            y=comp_data['CurrentTireGrip'],
+                            mode='markers',
+                            name=f'{compound} (Actual)',
+                            marker=dict(
+                                size=8,
+                                color=compound_colors.get(compound, '#888888'),
+                                opacity=0.6
+                            ),
+                            hovertemplate=f'{compound}<br>Age: %{{x}}<br>Grip: %{{y:.3f}}<extra></extra>'
+                        ))
+
+                    fig_real_tire.update_layout(
+                        title=f"Actual Tire Grip in Race - {selected_driver}",
+                        xaxis_title="Tire Age (Laps)",
+                        yaxis_title="Calculated Grip Coefficient",
+                        template="plotly_dark",
+                        height=400,
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        plot_bgcolor='rgba(20,20,30,0.5)'
+                    )
+                    st.plotly_chart(fig_real_tire, use_container_width=True)
 
         # ==============================================================================
         # FEATURE IMPORTANCE CHART (Bottom of Dashboard)
         # ==============================================================================
-        st.markdown("---")
+        st.markdown('<div class="race-stripe"></div>', unsafe_allow_html=True)
         st.subheader("🔬 Model Feature Importance")
         st.caption("Shows which factors the ML model uses most to predict lap times (excluding identity features)")
         
@@ -468,12 +985,28 @@ def main():
             # Show identity features separately in expander
             with st.expander("🏷️ Identity Features (Driver/Team/Track)"):
                 identity_df = imp_df[imp_df['Feature'].str.startswith(tuple(ignored_prefixes))]
-                identity_df = identity_df.sort_values('Importance', ascending=False).head(10)
-                st.dataframe(identity_df, use_container_width=True, hide_index=True)
-                st.caption("These features capture driver/team/track-specific performance differences.")
-                
+                if not identity_df.empty:
+                    identity_df = identity_df.sort_values('Importance', ascending=False).head(10)
+                    st.dataframe(identity_df, use_container_width=True, hide_index=True)
+                    st.caption("These features capture driver/team/track-specific performance differences.")
+                else:
+                    st.info("No identity features found in top predictors.")
+
         except Exception as e:
             st.error(f"Could not load feature importance: {e}")
+
+    # Footer
+    st.markdown('<div class="race-stripe"></div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div style='text-align: center; padding: 2rem; color: #666;'>
+        <p style='font-size: 0.9rem;'>
+            <strong>F1 Strategy Command Center</strong> | Powered by XGBoost & Physics-Based Feature Engineering
+        </p>
+        <p style='font-size: 0.8rem;'>
+            Data: FastF1 API | ML Tracking: MLflow | Visualization: Plotly
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()

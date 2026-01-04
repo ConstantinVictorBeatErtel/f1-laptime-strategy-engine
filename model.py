@@ -7,6 +7,11 @@ import matplotlib.pyplot as plt
 import pickle
 import os
 from logger import setup_logger
+import mlflow
+
+# Set the tracking URI to your local MLflow container
+mlflow.set_tracking_uri("http://localhost:5001")
+mlflow.set_experiment("F1_Race_Strategy_Optimization")
 
 # Create logger instance
 logger = setup_logger("f1_model")
@@ -728,40 +733,99 @@ class F1LapTimePredictor:
         
         return X_new
     
-    def train(self, X_train, y_train, X_val, y_val):
-        """Train XGBoost model"""
+    def train(self, X_train, y_train, X_val, y_val, train_df=None, val_df=None):
+        """
+        Train XGBoost model with MLflow logging
+
+        Args:
+            X_train, y_train: Training features and target
+            X_val, y_val: Validation features and target
+            train_df, val_df: Optional DataFrames with ReferenceTime for seconds conversion
+        """
         logger.info(f"Training started with {X_train.shape[0]:,} samples and {X_train.shape[1]} features")
         print(f"🎯 Training XGBoost on {X_train.shape[0]:,} samples...")
-        
-        self.model = xgb.XGBRegressor(
-            n_estimators=500,
-            learning_rate=0.05,
-            max_depth=6,
-            subsample=0.8,
-            colsample_bytree=0.8,
-            random_state=42,
-            early_stopping_rounds=50,
-            eval_metric='mae'
-        )
-        
-        self.model.fit(
-            X_train, y_train,
-            eval_set=[(X_val, y_val)],
-            verbose=False
-        )
-        
-        # Final metrics
-        train_pred = self.model.predict(X_train)
-        val_pred = self.model.predict(X_val)
-        
-        train_mae = mean_absolute_error(y_train, train_pred)
-        val_mae = mean_absolute_error(y_val, val_pred)
-        
-        print(f"   ✓ Train MAE: {train_mae:.4f}")
-        print(f"   ✓ Val MAE:   {val_mae:.4f}")
-        logger.info(f"Training complete - Train MAE: {train_mae:.4f}, Val MAE: {val_mae:.4f}")
 
-        
+        with mlflow.start_run(run_name="XGBoost_Strategy_Train"):
+            # Hyperparameters
+            params = {
+                'n_estimators': 500,
+                'learning_rate': 0.05,
+                'max_depth': 6,
+                'subsample': 0.8,
+                'colsample_bytree': 0.8,
+                'random_state': 42,
+                'early_stopping_rounds': 50
+            }
+            mlflow.log_params(params)
+
+            self.model = xgb.XGBRegressor(
+                n_estimators=params['n_estimators'],
+                learning_rate=params['learning_rate'],
+                max_depth=params['max_depth'],
+                subsample=params['subsample'],
+                colsample_bytree=params['colsample_bytree'],
+                random_state=params['random_state'],
+                early_stopping_rounds=params['early_stopping_rounds']
+            )
+            self.model.fit(
+                X_train, y_train,
+                eval_set=[(X_val, y_val)],
+                verbose=False
+            )
+
+            # Final metrics
+            train_pred = self.model.predict(X_train)
+            val_pred = self.model.predict(X_val)
+
+            train_mae = mean_absolute_error(y_train, train_pred)
+            val_mae = mean_absolute_error(y_val, val_pred)
+            train_rmse = np.sqrt(mean_squared_error(y_train, train_pred))
+            val_rmse = np.sqrt(mean_squared_error(y_val, val_pred))
+
+            # Log ratio metrics
+            mlflow.log_metric("train_mae_ratio", train_mae)
+            mlflow.log_metric("val_mae_ratio", val_mae)
+            mlflow.log_metric("train_rmse_ratio", train_rmse)
+            mlflow.log_metric("val_rmse_ratio", val_rmse)
+
+            # If DataFrames provided, calculate metrics in seconds
+            if train_df is not None and val_df is not None and 'ReferenceTime' in train_df.columns:
+                # Align indices
+                train_ref = train_df.loc[X_train.index, 'ReferenceTime']
+                val_ref = val_df.loc[X_val.index, 'ReferenceTime']
+
+                # Convert to seconds
+                train_actual_sec = y_train * train_ref
+                train_pred_sec = train_pred * train_ref
+                val_actual_sec = y_val * val_ref
+                val_pred_sec = val_pred * val_ref
+
+                train_mae_sec = mean_absolute_error(train_actual_sec, train_pred_sec)
+                val_mae_sec = mean_absolute_error(val_actual_sec, val_pred_sec)
+                train_rmse_sec = np.sqrt(mean_squared_error(train_actual_sec, train_pred_sec))
+                val_rmse_sec = np.sqrt(mean_squared_error(val_actual_sec, val_pred_sec))
+
+                # Log seconds metrics
+                mlflow.log_metric("train_mae_seconds", train_mae_sec)
+                mlflow.log_metric("val_mae_seconds", val_mae_sec)
+                mlflow.log_metric("train_rmse_seconds", train_rmse_sec)
+                mlflow.log_metric("val_rmse_seconds", val_rmse_sec)
+
+                print(f"   ✓ Train MAE: {train_mae:.4f} ratio ({train_mae_sec:.3f}s)")
+                print(f"   ✓ Val MAE:   {val_mae:.4f} ratio ({val_mae_sec:.3f}s)")
+                logger.info(f"Training complete - Val MAE: {val_mae:.4f} ratio ({val_mae_sec:.3f}s)")
+            else:
+                print(f"   ✓ Train MAE: {train_mae:.4f}, RMSE: {train_rmse:.4f}")
+                print(f"   ✓ Val MAE:   {val_mae:.4f}, RMSE: {val_rmse:.4f}")
+                logger.info(f"Training complete - Train MAE: {train_mae:.4f}, Val MAE: {val_mae:.4f}")
+
+            # Log model as pickle artifact (compatible with all MLflow versions)
+            model_path = "xgboost_model.pkl"
+            with open(model_path, "wb") as f:
+                pickle.dump(self.model, f)
+            mlflow.log_artifact(model_path, artifact_path="model")
+            os.remove(model_path)  # Clean up temporary file
+
         return self.model
     
     def temporal_train_test_split(self, df, test_size=0.2):
@@ -804,9 +868,29 @@ class F1LapTimePredictor:
         
         return train_df, val_df, test_df
     
+    def log_metadata(self):
+        """Log extra metadata as MLflow artifacts"""
+        metadata = {
+            'feature_names': self.feature_names,
+            'deg_rates': self.deg_rates,
+            'driver_baselines': self.driver_baselines,
+        }
+        # Temporary local file to upload
+        meta_path = "metadata.pkl"
+        with open(meta_path, "wb") as f:
+            pickle.dump(metadata, f)
+
+        # Logs the file to the current active MLflow run
+        mlflow.log_artifact(meta_path)
+
+        # Clean up temporary file
+        os.remove(meta_path)
+
     def save_model(self, filepath):
-        """Save model and metadata"""
+        """Save model and metadata locally and to MLflow"""
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
+
+        # Existing local save logic
         with open(filepath, 'wb') as f:
             pickle.dump({
                 'model': self.model,
@@ -814,7 +898,13 @@ class F1LapTimePredictor:
                 'deg_rates': self.deg_rates,
                 'driver_baselines': self.driver_baselines,
             }, f)
-        print(f"✅ Model saved to {filepath}")
+
+        # Log the same metadata to MLflow
+        if mlflow.active_run():
+            self.log_metadata()
+            print(f"✅ Model saved to {filepath} and logged to MLflow")
+        else:
+            print(f"✅ Model saved to {filepath} (No active MLflow run to log metadata)")
     
     def load_model(self, filepath):
         """Load model and metadata"""
